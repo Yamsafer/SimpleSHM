@@ -39,8 +39,12 @@ class Block
      */
     public function __construct($id = null)
     {
-        if($id === null) {
+        if ($id === null) {
             $this->id = $this->generateID();
+            $count = 0;
+            while($this->exists($this->id) && $count++ < 100) {
+                $this->id = $this->generateID();
+            }
         } else {
             $this->id = $id;
         }
@@ -58,8 +62,7 @@ class Block
      */
     protected function generateID()
     {
-        $id = ftok(__FILE__, "b");
-        return $id;
+        return mt_rand(100, 999999999);
     }
 
     /**
@@ -92,6 +95,8 @@ class Block
      */
     public function write($data)
     {
+        if ( ! is_string($data)) $data = json_encode($data);
+
         $size = mb_strlen($data, 'UTF-8');
 
         if($this->exists($this->id)) {
@@ -116,7 +121,10 @@ class Block
         $size = shmop_size($this->shmid);
         $data = shmop_read($this->shmid, 0, $size);
 
-        return $data;
+        $result = json_decode($data, true);
+
+        if (json_last_error() == JSON_ERROR_NONE) return $result;
+        else return $data;
     }
 
     /**
