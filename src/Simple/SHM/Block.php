@@ -48,10 +48,6 @@ class Block
         } else {
             $this->id = $id;
         }
-
-        if($this->exists($this->id)) {
-            $this->shmid = shmop_open($this->id, "w", 0, 0);
-        }
     }
 
     /**
@@ -124,6 +120,10 @@ class Block
     {
         $lockHandler = $this->lock();
 
+        if ($this->exists($this->id)) {
+            $this->shmid = shmop_open($this->id, "w", 0, 0);
+        }
+
         $size = shmop_size($this->shmid);
         $data = shmop_read($this->shmid, 0, $size);
 
@@ -142,7 +142,10 @@ class Block
      */
     public function delete()
     {
-        shmop_delete($this->shmid);
+        if ($this->exists($this->id)) {
+            $this->shmid = shmop_open($this->id, "w", 0, 0);
+            shmop_delete($this->shmid);
+        }
     }
 
     /**
@@ -216,6 +219,6 @@ class Block
      */
     public function __destruct()
     {
-        shmop_close($this->shmid);
+        if ($this->shmid) shmop_close($this->shmid);
     }
 }
