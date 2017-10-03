@@ -95,6 +95,8 @@ class Block
      */
     public function write($data)
     {
+        $lockHandler = $this->lock();
+
         if ( ! is_string($data)) $data = json_encode($data);
 
         $size = mb_strlen($data, 'UTF-8');
@@ -108,6 +110,8 @@ class Block
             $this->shmid = shmop_open($this->id, "c", $this->perms, $size);
             shmop_write($this->shmid, $data, 0);
         }
+
+        $this->unlock($lockHandler);
     }
 
     /**
@@ -118,10 +122,14 @@ class Block
      */
     public function read()
     {
+        $lockHandler = $this->lock();
+
         $size = shmop_size($this->shmid);
         $data = shmop_read($this->shmid, 0, $size);
 
         $result = json_decode($data, true);
+
+        $this->unlock($lockHandler);
 
         if (json_last_error() == JSON_ERROR_NONE) return $result;
         else return $data;
@@ -166,6 +174,39 @@ class Block
     public function setPermissions($perms)
     {
         $this->perms = $perms;
+    }
+
+    /**
+     * access locking function
+     *
+     * @return resource lock handler
+     */
+    protected function &lock()
+    {
+        if (function_exists('sem_get')) {
+            $fp = PHP_VERSION < 4.3 ? sem_get($this->id, 1, 0600) : sem_get($this->id, 1, 0600, 1);
+            sem_acquire ($fp);
+        } else {
+            $fp = fopen('/tmp/sm_'.md5($this->id), 'w');
+            flock($fp, LOCK_EX);
+        }
+
+        return $fp;
+    }
+
+    /**
+     * access unlocking function
+     *
+     * @param resource $fp lock handler
+     *
+     */
+    protected function unlock(&$fp)
+    {
+        if (function_exists('sem_get')) {
+            sem_release($fp);
+        } else {
+            fclose($fp);
+        }
     }
 
     /**
