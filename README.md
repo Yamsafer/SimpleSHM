@@ -47,4 +47,14 @@ echo $new->read();
 $existing = new Block(42);
 echo $existing->read();
 
+
+/**
+ * writing and reading arrays and Mark a shared memory block for deletion
+ */
+$memory = new Block;
+$array = ['test' => 'YamsaferTest', 'test1' => [154 => 333]];
+$memory->write($array);
+$data = $memory->read();
+echo $data['test']; // ==> 'YamsaferTest'
+$memory->delete();
 ```
