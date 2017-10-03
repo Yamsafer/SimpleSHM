@@ -77,4 +77,19 @@ class BlockTest extends \PHPUnit_Framework_TestCase
 
         $memory->delete();
     }
+
+    public function testWritingOnExistBlock()
+    {
+        $memory = new Block;
+        $id = $memory->getId();
+        $memory->write('Sample 5');
+        unset($memory);
+
+        $memory = new Block($id);
+        $memory->write('Sample 5');
+        $data = $memory->read();
+
+        $this->assertEquals('Sample 5', $data);
+        $memory->delete();
+    }
 }

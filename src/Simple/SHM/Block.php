@@ -98,6 +98,7 @@ class Block
         $size = mb_strlen($data, 'UTF-8');
 
         if($this->exists($this->id)) {
+            $this->shmid = shmop_open($this->id, "w", 0, 0);
             shmop_delete($this->shmid);
             shmop_close($this->shmid);
             $this->shmid = shmop_open($this->id, "c", $this->perms, $size);
