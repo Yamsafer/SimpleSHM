@@ -4,7 +4,7 @@
     "type": "library",
     "description": "SimpleSHM is a simple and small abstraction layer for shared memory manipulation using PHP.",
     "autoload": {
-        "psr-0": { "Simple\\SHM": "src/" }
+        "psr-4": { "Simple\\SHM": "src/" }
     },
     "require": {
         "php": ">=5.3.3"
