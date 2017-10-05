@@ -29,6 +29,15 @@ class Block
     protected $perms = 0644;
 
     /**
+     * Holds lock handler
+     *
+     * @var int
+     * @access protected
+     */
+
+    protected $lockHandler = null;
+
+    /**
      * Shared memory block instantiation
      *
      * In the constructor we'll check if the block we're going to manipulate
@@ -58,7 +67,7 @@ class Block
      */
     protected function generateID()
     {
-        return mt_rand(100, 999999999);
+        return mt_rand(100, 10000000);
     }
 
     /**
@@ -91,8 +100,6 @@ class Block
      */
     public function write($data)
     {
-        $lockHandler = $this->lock();
-
         if ( ! is_string($data)) $data = json_encode($data);
 
         $size = mb_strlen($data, 'UTF-8');
@@ -107,8 +114,6 @@ class Block
             $this->shmid = shmop_open($this->id, "c", $this->perms, $size);
             shmop_write($this->shmid, $data, 0);
         }
-
-        $this->unlock($lockHandler);
     }
 
     /**
@@ -119,18 +124,18 @@ class Block
      */
     public function read()
     {
-        $lockHandler = $this->lock();
-
         if ($this->exists($this->id)) {
             $this->shmid = shmop_open($this->id, "w", 0, 0);
         }
 
-        $size = shmop_size($this->shmid);
-        $data = shmop_read($this->shmid, 0, $size);
+        if ($this->shmid) {
+            $size = shmop_size($this->shmid);
+            $data = shmop_read($this->shmid, 0, $size);
+        } else {
+            $data = null;
+        }
 
         $result = json_decode($data, true);
-
-        $this->unlock($lockHandler);
 
         if (json_last_error() == JSON_ERROR_NONE) return $result;
         else return $data;
@@ -185,17 +190,17 @@ class Block
      *
      * @return resource lock handler
      */
-    protected function &lock()
+    public function lock()
     {
         if (function_exists('sem_get')) {
-            $fp = PHP_VERSION < 4.3 ? sem_get($this->id, 1, 0600) : sem_get($this->id, 1, 0600, 1);
-            sem_acquire ($fp);
+            $this->lockHandler = PHP_VERSION < 4.3 ? sem_get($this->id, 1, 0600) : sem_get($this->id, 1, 0600, 1);
+            if ( ! sem_acquire($this->lockHandler)) throw 'sem_acquire faild';
         } else {
-            $fp = fopen('/tmp/sm_'.md5($this->id), 'w');
-            flock($fp, LOCK_EX);
+            $this->lockHandler = fopen('/tmp/sm_'.md5($this->id), 'w');
+            flock($this->lockHandler, LOCK_EX);
         }
 
-        return $fp;
+        return $this->lockHandler;
     }
 
     /**
@@ -204,12 +209,12 @@ class Block
      * @param resource $fp lock handler
      *
      */
-    protected function unlock(&$fp)
+    public function unlock()
     {
         if (function_exists('sem_get')) {
-            sem_release($fp);
+            if ( ! sem_release($this->lockHandler)) throw 'sem_release faild';
         } else {
-            fclose($fp);
+            fclose($this->lockHandler);
         }
     }
 

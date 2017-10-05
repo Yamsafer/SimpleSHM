@@ -92,4 +92,18 @@ class BlockTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('Sample 5', $data);
         $memory->delete();
     }
+
+     public function testLockAndUnlockMemory()
+    {
+        $memory = new Block;
+        $memory->lock();
+        $id = $memory->getId();
+        $memory->write('Sample 6');
+        $data = $memory->read();
+
+        $this->assertEquals('Sample 6', $data);
+        $memory->unlock();
+        $memory->delete();
+    }
+
 }
