@@ -194,7 +194,7 @@ class Block
     {
         if (function_exists('sem_get')) {
             $this->lockHandler = PHP_VERSION < 4.3 ? sem_get($this->id, 1, 0600) : sem_get($this->id, 1, 0600, 1);
-            if ( ! sem_acquire($this->lockHandler)) throw 'sem_acquire faild';
+            if ( ! sem_acquire($this->lockHandler)) throw new \Exception('sem_acquire failed', 400);
         } else {
             $this->lockHandler = fopen('/tmp/sm_'.md5($this->id), 'w');
             flock($this->lockHandler, LOCK_EX);
@@ -212,7 +212,7 @@ class Block
     public function unlock()
     {
         if (function_exists('sem_get')) {
-            if ( ! sem_release($this->lockHandler)) throw 'sem_release faild';
+            if ( ! sem_release($this->lockHandler)) throw new \Exception('sem_release failed', 400);
         } else {
             fclose($this->lockHandler);
         }
